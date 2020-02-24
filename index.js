@@ -16,7 +16,18 @@ connection.connect((err) => {
   if (err) throw err;
   init();
 });
-
+function showTable() {
+  connection.query(
+    "SELECT first_name, last_name, title, salary, dept_name, (SELECT CONCAT(first_name, ' ', last_name) FROM tracker_db.employee WHERE id = a.manager_id) AS manager FROM tracker_db.employee a " +
+    "left join tracker_db.role on role_id = tracker_db.role.id " +
+    "left join tracker_db.department on tracker_db.role.dept_id = tracker_db.department.id",
+    (err, res) => {
+      if (err) throw err;
+      // Log all results of the SELECT statement
+      console.table(res);
+    },
+  );
+}
 function createEmployee(first_name, last_name, role_id, manager_id) {
   connection.query(
     'INSERT INTO employee SET ?',
@@ -131,7 +142,7 @@ function readDepartments() {
 }
 function init() {
 
-  
+  showTable();
 
   // End DB Connection
   connection.end();
