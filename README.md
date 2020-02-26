@@ -26,3 +26,6 @@ The command-line application allows users to:
 
   * Delete employees
 
+## Screen Shot
+
+![Employee Tracker](./tracker.png)
