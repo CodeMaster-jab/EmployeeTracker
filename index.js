@@ -2,7 +2,6 @@ const mysql = require('mysql');
 const { prompt } = require('enquirer');
 const figlet = require('figlet');
 
-let next = 'Menu';
 const users = [];
 const roles = [];
 const departments = [];
@@ -27,18 +26,17 @@ function quit() {
   process.exit(0);
 }
 function showEmployees() {
-  connection.query(
-    "SELECT a.id, first_name, last_name, title, salary, dept_name, (SELECT CONCAT(first_name, ' ', last_name) FROM tracker_db.employee WHERE id = a.manager_id) AS manager FROM tracker_db.employee a " +
-    "left join tracker_db.role on role_id = tracker_db.role.id " +
-    "left join tracker_db.department on tracker_db.role.dept_id = tracker_db.department.id",
-    (err, res) => {
-      if (err) throw err;
-      // Log all results of the SELECT statement
-      console.log('\n');
-      console.table(res);
-      console.log('\n\n\n\n\n\n\n\n\n\n\n');
-    },
-  );
+  return new Promise((resolve, reject) => {
+    connection.query(
+      "SELECT a.id, first_name, last_name, title, salary, dept_name, (SELECT CONCAT(first_name, ' ', last_name) FROM tracker_db.employee WHERE id = a.manager_id) AS manager FROM tracker_db.employee a " +
+      "left join tracker_db.role on role_id = tracker_db.role.id " +
+      "left join tracker_db.department on tracker_db.role.dept_id = tracker_db.department.id",
+      (err, res) => {
+        if (err) reject(err);
+        resolve(res);
+      },
+    );
+  });
 }
 function createEmployee(first_name, last_name, role_id, manager_id) {
   connection.query(
@@ -128,34 +126,21 @@ function removeEmployee(id) {
   );
 }
 function readRoles() {
-  // Run Query
-  connection.query('SELECT * FROM role', (err, res) => {
-    if (err) throw err;
-    // Log all results of the SELECT statement
-    console.log('\n');
-    console.table(res);
-    console.log('\n');
-    console.log('\n');
-    console.log('\n');
-    console.log('\n');
-    console.log('\n');
-    console.log('\n');
-    console.log('\n');
+  return new Promise((resolve, reject) => {
+    // Run Query
+    connection.query('SELECT * FROM role', (err, res) => {
+      if (err) reject(err);
+      resolve(res);
+    });
   });
 }
 function readDepartments() {
-  // Run Query
-  connection.query('SELECT * FROM department', (err, res) => {
-    if (err) throw err;
-    // Log all results of the SELECT statement
-    console.log('\n');
-    console.table(res);
-    console.log('\n');
-    console.log('\n');
-    console.log('\n');
-    console.log('\n');
-    console.log('\n');
-    console.log('\n');
+  return new Promise((resolve, reject) => {
+    // Run Query
+    connection.query('SELECT * FROM department', (err, res) => {
+      if (err) reject(err);
+      resolve(res);
+    });
   });
 }
 function getUsers() {
@@ -216,46 +201,15 @@ async function mainMenu() {
     'Update Employee Manager',
     'Delete an Employee',
   ];
-  await prompt([
+  const answers = await prompt([
     {
       type: 'select',
       message: 'What would you like to do?',
       name: 'func',
       choices: choices,
     },
-  ]).then((answers) => {
-    if (answers.func === 'Quit') {
-      // quit();
-      next = 'Quit';
-    }
-    if (answers.func === 'View all Employees') {
-      next = 'showEmployees';
-    }
-    if (answers.func === 'View Roles') {
-      next = 'showRoles';
-    }
-    if (answers.func === 'View Departments') {
-      next = 'showDepartments';
-    }
-    if (answers.func === 'Add an Employee') {
-      next = 'addEmployee';
-    }
-    if (answers.func === 'Add a Role') {
-      next = 'addRole';
-    }
-    if (answers.func === 'Add a Department') {
-      next = 'addDepartment';
-    }
-    if (answers.func === 'Update Employee Role') {
-      next = 'updateRole';
-    }
-    if (answers.func === 'Update Employee Manager') {
-      next = 'updateManager';
-    }
-    if (answers.func === 'Delete an Employee') {
-      next = 'deleteEmployee';
-    }
-  });
+  ]);
+  return answers.func;
 }
 async function addEmployee() {
   await prompt([
@@ -368,6 +322,45 @@ async function deleteEmployee() {
     removeEmployee(answers.emplID);
   });
 }
+async function promptNext() {
+  const next = await mainMenu();
+  switch (next) {
+    case 'View all Employees':
+      const employees = await showEmployees();
+      console.table(employees);
+      break;
+    case 'View Roles':
+      const roles = await readRoles();
+      console.table(roles);
+      break;
+    case 'View Departments':
+      const depts = await readDepartments();
+      console.table(depts);
+      break;
+    case 'Add an Employee':
+      await addEmployee();
+      break;
+    case 'Add a Role':
+      await addRole();
+      break;
+    case 'Add a Department':
+      await addDepartment();
+      break;
+    case 'Update Employee Role':
+      await updateRole();
+      break;
+    case 'Update Employee Manager':
+      await updateManager();
+      break;
+    case 'Delete an Employee':
+      await deleteEmployee();
+      break;
+    default:
+      quit();
+      break;
+  }
+  promptNext();
+}
 async function init() {
   console.log(figlet.textSync('Employee', {
     font: 'Standard',
@@ -379,50 +372,5 @@ async function init() {
     horizontalLayout: 'default',
     verticalLayout: 'default',
   }));
-  while (next !== 'Quit') {
-    switch (next) {
-      case 'Menu':
-        await mainMenu();
-        break;
-      case 'showEmployees':
-        await showEmployees();
-        next = 'Menu';
-        break;
-      case 'showRoles':
-        await readRoles();
-        next = 'Menu';
-        break;
-      case 'showDepartments':
-        await readDepartments();
-        next = 'Menu';
-        break;
-      case 'addEmployee':
-        await addEmployee();
-        next = 'Menu';
-        break;
-      case 'addRole':
-        await addRole();
-        next = 'Menu';
-        break;
-      case 'addDepartment':
-        await addDepartment();
-        next = 'Menu';
-        break;
-      case 'updateRole':
-        await updateRole();
-        next = 'Menu';
-        break;
-      case 'updateManager':
-        await updateManager();
-        next = 'Menu';
-        break;
-      case 'deleteEmployee':
-        await deleteEmployee();
-        next = 'Menu';
-        break;
-      default:
-        break;
-    }
-  }
-  quit();
+  promptNext();
 }
